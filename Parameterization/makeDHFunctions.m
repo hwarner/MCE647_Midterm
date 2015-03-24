@@ -1,5 +1,6 @@
 
-%% PUMA Robot
+%% This scripts builds a function with with the PUMA Robot's transformation 
+%  matrices in it.
 
 % setup generalized set of rotation matrices with 5 DOF, three revolute and
 % two prismatic
@@ -46,9 +47,9 @@ end
 
 % Make a function out of A5_0
 matlabFunction(A.H50,'file','transA5_0','vars',{'theta1','theta2','theta3'});
-matlabFunction(A.H40,'file','transA4_0','vars',{'theta1','theta2','theta3'});
-matlabFunction(A.H30,'file','transA3_0','vars',{'theta1','theta2','theta3'});
-matlabFunction(A.H20,'file','transA2_0','vars',{'theta1','theta2','theta3'});
-matlabFunction(A.H10,'file','transA1_0','vars',{'theta1','theta2','theta3'});
+% matlabFunction(A.H40,'file','transA4_0','vars',{'theta1','theta2','theta3'});
+% matlabFunction(A.H30,'file','transA3_0','vars',{'theta1','theta2','theta3'});
+% matlabFunction(A.H20,'file','transA2_0','vars',{'theta1','theta2','theta3'});
+%matlabFunction(A.H10,'file','transA1_0','vars',{'theta1','theta2','theta3'});
 
 

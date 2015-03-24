@@ -1,33 +1,53 @@
 function M=plotResults(numPoints,dataForPlotting,m,r,A5_0)
 
+%plotResults - Plot the 3D rendering of the results of the parameter
+%optimization script.
+%
+%
+%M=plotResults(numPoints,dataForPlotting,m,r,A5_0)
+%
+%       Inputs:
+%               numPoints  - the number of data points collected
+%               dataForPlotting - output values of the optimization
+%               r - radius of the wheel
+%               A5_0 - transformation matrix of the robot's laser
+%
+%       Outputs:
+%               M - moive frame for animation
+%
+%        Special Instructions here
 
-theta4plot=[0:0.1:2*pi];
 
+beta4plot=[0:0.1:2*pi];
+
+% Set up the figure
 figure
 colors = get(gca,'colororder');
 view([-65 10]);
-xlabel('x')
-ylabel('y')
-zlabel('z')
+xlabel('x (m)')
+ylabel('y (m)')
+zlabel('z (m)')
 set(gca,'xlim',[0 3],'ylim',[-1.5 1.5],'zlim',[0 3])
 axis equal
 
-
+% Draw the initial lines/circles/ and points
 hold on
 for i=1:numPoints
-    lineH(i)=line([0,0],[0,0],[0,0],'color',colors(i,:),'marker','.');
-    circleH(i)=line([0,0],[0,0],[0,0],'color',colors(i,:));
-    centerH(i)=line(0,0,0,'color',colors(i,:),'marker','.');
+    lineH(i)=line([0,0],[0,0],[0,0],'color',colors(i,:),'marker','.','linewidth',2,'markersize',20);
+    circleH(i)=line([0,0],[0,0],[0,0],'color',colors(i,:),'linewidth',2);
+    centerH(i)=line(0,0,0,'color',colors(i,:),'marker','*','linewidth',2,'markersize',10);
     gammaRMat(:,i)=m.( ['gammaR' num2str(i)] );
 end
+
+% loop through the solution
 for soln=1:size(dataForPlotting,1)
     centerPts = equationSet(dataForPlotting(soln,:));
     for ptn=1:numPoints
         
         %Update the circle x/y/z data
         %circleParam is not vectorized, so have to loop
-        for j=1:length(theta4plot)
-            cData(:,j)=circleParam(theta4plot(j),r,centerPts(1,ptn),centerPts(2,ptn),centerPts(3,ptn),m.phiA(soln),m.psiA(soln));      
+        for j=1:length(beta4plot)
+            cData(:,j)=circleParam(beta4plot(j),r,centerPts(1,ptn),centerPts(2,ptn),centerPts(3,ptn),m.phiA(soln),m.psiA(soln));      
         end      
         set(circleH(ptn),'xdata',cData(1,:),'ydata',cData(2,:),'zdata',cData(3,:))
         
