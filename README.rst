@@ -1,11 +1,11 @@
 Introduction
 =============
+| This repository contains all software used for  
 
-This repository contains all software used for  
-    MCE 647 Robot Dynamics and Control 
-    Cleveland State University
-    Dr. Hanz Richter
-    Spring 2015
+| MCE 647 Robot Dynamics and Control 
+| Cleveland State University
+| Dr. Hanz Richter
+| Spring 2015
 
 The PDF of the associated report and the LaTeX source code 
 is available in the repository for reference.  
