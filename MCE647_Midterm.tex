@@ -1,0 +1,864 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{hyperref}
+\usepackage{amsmath}  %Matrix Math Package
+\usepackage[framed,numbered,autolinebreaks,useliterate]{mcode}  %For MATLAB Code
+\usepackage{mdframed}  %For MATLAB Code
+\usepackage{caption}
+\captionsetup[lstlisting]{font={small,tt}}
+\usepackage{nomencl} %Nomenclature
+\makenomenclature
+
+\begin{document}
+
+%=============================================================================
+%TITLE PAGE
+%============================================================================
+
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.3mm}} 
+
+\center 
+ 
+%---------- 
+%Heading
+%----------
+\textsc{\LARGE Cleveland State University}\\[1.5cm] 
+\textsc{\Large MCE 647/747 Robot Dynamics and Control}\\[0.5cm] 
+\textsc{\large Midterm Exam Take-Home Portion}\\[0.5cm] 
+
+%-------
+%Title
+%-------
+\HRule \\[0.4cm]
+{ \huge \bfseries Coordinate Measurement using a Laser-Fitted PUMA Robot}\\[0.4cm] 
+\HRule \\[1.5cm]
+ 
+%--------
+%Authors
+%--------
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Authors:}\\
+Sandra \textsc{Hnat}\\
+Brad \textsc{Humphreys}\\
+Nicholas \textsc{Mavros}\\
+Holly \textsc{Warner}
+\end{flushleft}
+\end{minipage}
+~
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor:} \\
+Dr. Hanz \textsc{Richter} \\
+\vspace*{3\baselineskip}
+\end{flushright}
+\end{minipage}\\[2cm]
+
+%------
+%Logo
+%------
+\includegraphics{csulogo.jpg}\\[0.5cm] 
+
+%-------
+%Date
+%-------
+{\large \today}\\[2cm] 
+
+
+ 
+
+\vfill 
+
+\end{titlepage}
+
+%============================================================================
+%REPORT
+%============================================================================
+
+%---------------------------------------------------------------------------
+\section{Introduction}
+%---------------------------------------------------------------------------
+
+Coordinate measuring machines (CMM) are used to describe the locations and orientations of objects in three-dimensional space and can be viable tools in a variety of applications. In order to replicate such a device, a PUMA robotic manipulator fitted with a laser beam allows for precise measurement of world coordinates through a manual control system. To test the capabilities of such a coordinate measurement system, a very accurate racing wheel with a known radius of 33 cm was used as a reference circle. The bicycle wheel was randomly oriented in space without measuring any distances between the wheel and the robot or the surrounding environment, shown in Figure \ref{fig:PUMA_and_wheel}.  Joint angles of the PUMA robot are measured when the light beam of the laser is oriented at various locations along the circumference of the bicycle wheel.   Using only these joint angles and the radius of the circle, a method for calculating the location of the center of the bicycle wheel can be developed.  
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.5\textwidth]{IMAG0924.jpg}}
+  \centering
+  \caption{Experimental setup in which a laser-fitted PUMA robot can be used to estimate the center of a bicycle wheel randomly oriented in space.} 
+  \centering
+  \label{fig:PUMA_and_wheel}
+\end{figure}
+\noindent
+Figure \ref{fig:PUMA_frames} shows a plan view and a frontal view of the PUMA robot, as well as the coordinate frames according to the Denavit-Hartenberg (DH) convention. Only the first three joints of the PUMA robot were used in the experiment. The relevant parameters of the robot are summarized in Table \ref{tab:PUMA_lengths} and were obtained through direct measurement and  previous study \cite{Corke}. 
+
+\begin{figure}[!ht]
+  {\includegraphics[width=1\textwidth]{PUMA_robot.png}}
+  \centering
+  \caption{Plan and frontal view of the PUMA robot, in which the coordinate frames comply with the Denavit-Hartenberg (DH) convention.} 
+  \centering
+  \label{fig:PUMA_frames}
+\end{figure}
+\noindent
+ 
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Length} & \textbf{Value (mm)} \\ \hline
+$d_1$     & 666        \\ \hline
+$d_2$     & 243.5      \\ \hline
+$a_2$     & 431.8      \\ \hline
+$d_3$     & 93.4       \\ \hline
+$b$      & 270        \\ \hline
+$k$      & 52.1       \\ \hline
+\end{tabular}
+\caption{Measured PUMA length parameters}
+\label{tab:PUMA_lengths}
+\end{center}
+\end{table}
+\noindent
+In order to develop and test an accurate solution method, sample joint angle data shown in Table \ref{tab:sample_data} and the center coordinates of $\begin{bmatrix} 2.1192 & -0.9218  & 0.8367 \end{bmatrix}^T$ were provided. The robustness of the algorithm can then be evaluated using additional data points measured experimentally.    
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Point} & $\boldsymbol{q_1}$    & $\boldsymbol{q_2}$     & $\boldsymbol{q_3}$     \\ \hline
+\it{1}     & -0.379 & -0.642 & 0.520  \\ \hline
+\it{2}     & -0.227 & -0.884 & 0.914  \\ \hline
+\it{3}     & -0.513 & 0.495  & -0.759 \\ \hline
+\it{4}     & -0.478 & 0.519  & -0.672 \\ \hline
+\end{tabular}
+\caption{Sample joint angles (radians) of the PUMA robot links at various locations along the circumference of the bicycle wheel}
+\label{tab:sample_data}
+\end{center}
+\end{table}
+
+However, before implementing a solution method, it is necessary to determine the minimum number of points that need to be measured in order to define a three-dimensional circle. Additionally, the end location of the laser must be represented in the global reference frame by following the DH convention and the corresponding coordinate frames outlined in Figure \ref{fig:PUMA_frames}. The coordinates of the measured points relative to the light source must be calculated before it is possible to obtain the center of the circle.
+ 
+After expressing the end effector of the laser in global coordinates, the center of the circle can be estimated using two different solution strategies.  The first method involves parameterizing the bicycle wheel as a circle and the laser beam as a line for each data point.  The centers of each of these circles can be forced to align through an optimization algorithm.  Alternatively, another solution method involves the projection of the vectors between the end of the laser and the measured point onto the appropriate planes in the global coordinate system. Optimization can then be used to calculate the coordinates of these vectors' endpoints, and the location of the center of the circle can be calculated directly. Both methods were developed using the provided sample data and tested using the additional data points obtained through experimentation.  
+
+\printnomenclature
+
+%--------------------------------------------------------------------------
+\section{Methods}
+%--------------------------------------------------------------------------
+
+%----------------------------------------
+\subsection{DH Convention} \label{sec:DHConvention}
+%----------------------------------------
+
+The orientation of the end effector of the PUMA manipulator must be expressed in the global coordinate system, which can be achieved by assigning coordinate frames that comply with the DH criterion (\ref{eq:DH}) for each link of the robot:
+
+\begin{equation}
+	A_{i} = Rot_{z,\theta_{i}}Trans_{z,d_{i}}
+    	Trans_{x,a_{i}}Rot_{x,\alpha_{i}}
+        \label{eq:DH}
+ \end{equation}
+ \noindent
+ \nomenclature{$\theta$}{rotation about the $z$-axis of a robot coordinate frame, DH parameter (\textit{radians})}
+ \nomenclature{$\alpha$}{rotation about the $x$-axis of a robot coordinate frame, DH parameter (\textit{radians})}
+ \nomenclature{$a$}{translation along $x$-axis of a robot coordinate frame, DH parameter (\textit{m})}
+ \nomenclature{$d$}{translation along $z$-axis of a robot coordinate frame, DH parameter (\textit{m})}
+
+As observed in Figure \ref{fig:PUMA_frames}, the laser origin is offset from the $x$-axis of the third reference frame.  Therefore, two additional translations are required to account for the $k$ and $b$ offsets, as shown in Figure \ref{fig:frame4_5}. Table \ref{tab:DH_convention} summarizes the required sequence of rotations and translations for the end effector of the PUMA robot, in which the virtual members of the manipulator are denoted by brackets. 
+
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.5\textwidth]{frame4_5.png}}
+  \centering
+  \caption{Illustration of the two additional translations required to account for the $k$ and $b$ offset of the laser} 
+  \centering
+  \label{fig:frame4_5}
+\end{figure}
+\noindent
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Link}    & $\boldsymbol{a}$  & $\boldsymbol{\alpha}$ & $\boldsymbol{d}$   & $\boldsymbol{\theta}$  \\ \hline
+\it{1}       & 0  & $\mathrm{-\pi/2}$ & $\mathrm{\it{d}_{1}}$  & $\mathrm{\it{q}_{1}^{*}}$ \\ \hline
+\it{2}       & $\mathrm{\it{a}_{2}}$ & 0     & $\mathrm{-\it{d}_{2}}$ & $\mathrm{\it{q}_{2}^{*}}$ \\ \hline
+\it{3}       & 0  & 0     & $\mathrm{\it{d}_{3}}$  & $\mathrm{\it{q}_{3}^{*}}$ \\ \hline
+{[}\it{4}{]} & 0  & 0     & \it{k}   & 0      \\ \hline
+{[}\it{5}{]} & \it{b}  & 0     & 0   & 0      \\ \hline
+\end{tabular}
+\caption{DH Convention for the PUMA Robot, in which the brackets indicate the virtual members of the manipulator}
+\label{tab:DH_convention}
+\end{center}
+\end{table}
+
+These relations, coupled with the known dimensions provided in Table \ref{tab:PUMA_lengths}, can then be combined (\ref{eq:DHtransform}) to transform the coordinates of the end effector into the global reference frame: 
+
+\begin{equation}
+	A_5^0 = A_1A_2A_3A_4A_5
+	\label{eq:DHtransform}
+\end{equation}\\
+\noindent
+The product of these transformation matrices will result in a matrix that defines the direction and location of the laser, which can then be used to compute the coordinates of the points on the bicycle wheel. The resulting transformation matrix $A_5^0$ may be referenced in the Appendix.  
+
+%--------------------------------------------------
+\subsection{Method One: Parameterization}
+%--------------------------------------------------
+
+The location of the center of the circle ($c_x$, $c_y$, and $c_z$) may be estimated by parameterizing the wheel as a circle and the laser as a line and using optimization to solve the resulting system of equations. 
+
+\nomenclature{$c_{x,y,z}$}{$x$, $y$, and $z$ locations of the center of a circle in global coordinates (\textit{m})}
+
+%--------------------------------------------------
+\subsubsection{Parameterizing the Wheel as a Circle}
+%--------------------------------------------------
+
+A unit circle at the origin of the \textit{X-Y} plane can be represented in matrix form:  
+
+\begin{equation}
+	B=\begin{bmatrix}
+       cos(\beta) & sin(\beta) & 0 \\
+       sin(\beta) & -cos(\beta) & 0\\
+       0 & 0 & 0
+    \end{bmatrix}
+    \label{eq:circleXY}
+\end{equation}
+\\
+\nomenclature{$\beta$}{angle from 0 to $2\pi$ on circle where line intersection occurs (\textit{radians})}
+\nomenclature{$r$}{radius of a circle (\textit{m})}
+
+The planar circle can be parametrized in three dimensional space as shown in (\ref{eq:circleEq}), where $r$ is the radius of the circle, $\mathbf{p} = [1,0,0]^T$, $B$ is a matrix representing a circle in the \textit{X-Y} plane, and $\beta$ is defined as the angle from $0$ to $2\pi$:
+
+\begin{equation}
+	\mathbf{c_o}=rIB\mathbf{p}=
+     \begin{bmatrix}
+       x\\
+       y\\
+       z
+    \end{bmatrix}
+    =r
+     \begin{bmatrix}
+       1 & 0 & 0 \\
+       0 & 1 & 0\\
+       0 & 0 & 1
+    \end{bmatrix}
+    \begin{bmatrix}
+       cos(\beta) & sin(\beta) & 0 \\
+       sin(\beta) & -cos(\beta) & 0\\
+       0 & 0 & 0
+    \end{bmatrix}
+    \begin{bmatrix}
+       1\\
+       0\\
+       0 
+    \end{bmatrix}=
+    \begin{bmatrix}
+       rcos(\beta)\\
+       rsin(\beta)\\
+       0 
+    \end{bmatrix}
+    \label{eq:circleEq}
+\end{equation}
+\\
+In order to place this circle at the same location and orientation as the bicycle wheel, vector $\mathbf{c_o}$ can be multiplied by a homogeneous transformation matrix, $A_c$: 
+
+\begin{equation}
+	\mathbf{c}=A_c
+    \begin{bmatrix}
+    \mathbf{c_o}\\ 1
+    \end{bmatrix}
+    =A_c
+    \begin{bmatrix}
+       rcos(\beta)\\
+       rsin(\beta)\\
+       0 \\
+       1
+    \end{bmatrix}
+    \label{eq:circleEq2}
+\end{equation}
+\\
+The transformation matrix of the circle $A_c$ can be obtained through translation ($c_x$, $c_y$, and $c_z$) and rotation about the $x$-axis and $y$-axis by $\phi$ and $\psi$, respectively  (\ref{eq:circleAMatrix}).  It is not necessary to perform a rotation about the $z$-axis, as the axis is coincident with the axis of the circle.  
+
+\nomenclature{$\phi$}{rotation of a circle about it's $x$-axis (\textit{radians})}
+\nomenclature{$\psi$}{rotation of a circle about it's $y$-axis (\textit{radians})}
+
+\begin{equation}
+	A_c=
+    \begin{bmatrix}
+       1 & 0 & 0 & c_x \\
+       0 & 1 & 0 & c_y \\
+       0 & 0 & 1 & c_z \\
+       0 & 0 & 0 & 1 
+    \end{bmatrix}
+    \begin{bmatrix}
+       1 & 0 & 0 & 0 \\
+       0 & cos(\phi) & -sin(\phi) & 0 \\
+       0 & sin(\phi) & cos(\phi) & 0 \\
+       0 & 0 & 0 & 1 
+    \end{bmatrix}
+     \begin{bmatrix}
+       cos(\psi) & 0 & sin(\psi) & 0 \\
+       0 & 1 & 0 & 0 \\
+       -sin(\psi) & 0 & cos(\psi) & 0 \\
+       0 & 0 & 0 & 1 
+    \end{bmatrix}
+    \label{eq:circleAMatrix}
+\end{equation}
+\\
+Performing the necessary matrix multiplications and simplifying: 
+
+\begin{equation}
+	A_c=
+     \begin{bmatrix}
+       cos(\psi) & 0 & sin(\psi) & c_x \\
+       sin(\phi)sin(\psi) & cos(\phi) &  -cos(\psi)*sin(\phi) & c_y \\
+       -cos(\phi)*sin(\psi) & sin(\phi) &  cos(\phi)*cos(\psi) & c_z \\
+       0 & 0 & 0 & 1 
+    \end{bmatrix}
+    \label{eq:circleAMatrix2}
+\end{equation}
+\\
+Substituting (\ref{eq:circleAMatrix2}) into (\ref{eq:circleEq2}) yields:
+
+\begin{equation}
+	\mathbf{c}=A_c\mathbf{c_o}=
+    \begin{bmatrix}
+     	c_x + rcos(\psi)cos(\beta) \\
+ 		c_y + rcos(\phi)sin(\beta) + rcos(\beta)sin(\phi)sin(\psi) \\
+ 		c_z + rsin(\phi)sin(\beta) - rcos(\phi)cos(\beta)sin(\psi) \\                             1
+    \end{bmatrix}
+    \label{eq:circleEq3}
+\end{equation}
+\\
+The resulting matrix entries define the circle at any location ($x$, $y$, and $z$).  Therefore, these relationships can be rearranged to solve for the center of the circle: 
+
+\begin{equation}
+  \begin{split}
+          & c_x = x - rcos(\psi)cos(\beta) \\
+          & c_y = y - rcos(\phi)sin(\beta) + rcos(\beta)sin(\phi)sin(\psi) \\
+          & c_z = z - rsin(\phi)sin(\beta) - rcos(\phi)cos(\beta)sin(\psi) \\  
+  \label{eq:circleEq5}
+  \end{split}
+\end{equation}
+
+%--------------------------------------------------
+\subsubsection{Parameterizing the Laser as a Line}
+%--------------------------------------------------
+
+Similarly, the equation for a line representing the laser beam can be derived (\ref{eq:lineEq}), where $\gamma$ is a scalar that changes the length of the line $\mathbf{p} = [1, 0, 0]^T$. This unknown value of $\gamma$ is the distance from the laser beam to the measurement location.
+
+\begin{equation}
+	\mathbf{l_o}= \gamma \mathbf{p} =     \begin{bmatrix}
+       \gamma \\ 0  \\ 0
+    \end{bmatrix}
+    \label{eq:lineEq}
+\end{equation}
+\\
+\nomenclature{$\gamma$}{distance from the laser beam to the measurement location, length of line (\textit{m})}
+\\
+However, to represent this line in the global coordinate system, it must be multiplied by a homogeneous transformation matrix that transforms the end point of the laser into the global coordinate system:
+
+\begin{equation}
+	\mathbf{l} = A_0^5 
+     \begin{bmatrix}
+       \mathbf{l_o} \\ 1
+    \end{bmatrix}
+     =A_0^5
+    \begin{bmatrix}
+       \gamma \\ 0  \\ 0 \\ 1
+    \end{bmatrix}
+    \label{eq:lineEq2}
+\end{equation}
+\\
+This transformation matrix $A_0^5$ can be derived by following the DH convention (see \ref{sec:DHConvention}) and can be represented in the following form, where $\mathbf{p_{laser}}$ and $R_{laser}$ are the position and orientation of the laser in world coordinates: 
+
+\begin{equation}
+	A_0^5 =
+     \begin{bmatrix}
+       R_{laser} & \mathbf{p_{laser}} \\ 
+       0 & 1
+    \end{bmatrix}=
+    \begin{bmatrix}
+       r_{11} & r_{12} & r_{13} & t_x \\
+       r_{21} & r_{22} & r_{23} & t_y \\
+       r_{31} & r_{32} & r_{33} & t_z \\
+       0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    \label{eq:lineTMatrix}
+\end{equation}
+\\
+Given the measured joint angles of the robot provided in Table \ref{tab:sample_data}, all  variables in matrix $A_0^5$ are known. Therefore, using this relationship, three equations for $x$, $y$, and $z$ can be obtained:
+
+\begin{equation}
+  \begin{split}
+          & x = t_x + \gamma r_{11} \\
+          & y = t_y + \gamma r_{21} \\
+          & z = t_z + \gamma r_{31} \\  
+  \label{eq:lineEq3}
+  \end{split}
+\end{equation}
+
+%--------------------------------------------------
+\subsubsection{Intersection of the Circle and Line}
+%--------------------------------------------------
+
+When the laser is oriented on the circumference of the bicycle wheel, $x$, $y$, and $z$ in equations (\ref{eq:circleEq5}) and (\ref{eq:lineEq3}) are equivalent.  Therefore, the equation for the center point of the circle can be expressed as:
+
+\begin{equation}
+  \begin{split}
+          & c_x = t_x + \gamma r_{11} - rcos(\psi)cos(\beta) \\
+          & c_y =  t_y + \gamma r_{21} - rcos(\phi)sin(\beta) + rcos(\beta)sin(\phi)sin(\psi) \\
+          & c_z = t_z + \gamma r_{31} - rsin(\phi)sin(\beta) - rcos(\phi)cos(\beta)sin(\psi) \\  
+  \label{eq:lineAndcircle}
+  \end{split}
+\end{equation}
+
+%--------------------------------------------------
+\subsubsection{Determining the Number of Points} \label{sec:minpoints}
+%--------------------------------------------------
+
+Similar to the process of fitting a linear set of equations, the minimum number of points can be determined using multiple data sets and a least-squares approach.  
+
+The intersection of a circle and line (\ref{eq:lineAndcircle}) yields 3 equations and 7 unknowns: $c_x$, $c_y$, $c_z$, $\gamma$, $\beta$, $\phi$, $\psi$.  The variables $c_x$, $c_y$, $c_z$, $\phi$, and $\psi$ are constants for all data points, while the variables $\gamma$ and $\beta$ change with each data point ($n$).
+  
+Therefore, collecting the first data point ($n = 1$) will yield 3 equations and 7 unknowns. Two new unknowns ($\gamma_n$ and $\beta_n$) and 3 additional equations will be added with each additional data point, thereby removing one free variable.  In order to obtain an equal or greater number of equations than unknown variables, a minimum of 5 points must be measured, as outlined in Table \ref{tab:numPoints}.
+
+\begin{table}[ht!]
+  \begin{center}
+    \begin{tabular}{|c|c|c|c|c|}
+    \hline
+\multicolumn{1}{|c|}{\textbf{Point}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}New\\ Equations\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}No. of\\ Equations\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}New\\ Variables\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}No. of\\ Variables\end{tabular}}} \\ \hline
+    \it{1} & 3 & 3 & 7 ($c_x$, $c_y$, $c_z$, $\phi$, $\psi$, $\gamma_1$, $\beta_1$)  & 7 \\ \hline
+    \it{2} & 3 & 6 & 2 ($\gamma_2$, $\beta_2$)& 9 \\ \hline
+    \it{3} & 3 & 9 & 2 ($\gamma_3$, $\beta_3$)& 11 \\ \hline
+    \it{4} & 3 & 12 & 2 ($\gamma_4$, $\beta_4$)& 13 \\ \hline
+    \it{5} & 3 & \textbf{15} & 2 ($\gamma_5$, $\beta_5$)& \textbf{15} \\ \hline
+    \end{tabular}
+  \caption{Number of equations and unknown variables as a function of the number of measured data points}
+  \label{tab:numPoints}
+  \end{center}
+\end{table}
+
+\noindent
+However, poorly conditioned or rank-deficient matrices may be obtained if the same data points are repeated.  If no additional information about the system is provided, then the rank of the system cannot increase with each additional data point.  To avoid this, different measurement locations should ensure that no parallel angles or equal distances are obtained. This can be accomplished by varying the generalized coordinates of the robot in order to span as much of the space as possible.  
+
+%--------------------------------------------------
+\subsubsection{Algorithm and Optimization}
+%--------------------------------------------------
+
+The intersection of a line and circle (\ref{eq:lineAndcircle}) was used with MATLAB's $fmincon$ optimization function in which a line and circle were created for each measured data point. The optimizer adjusted the parameters $\phi$, $\psi$, $\gamma_n$, $\beta_n$ for each data point ($n$) in order to force an alignment between the center of all circles. This is accomplished  by optimizing the orientation of all circles in tandem, the length of each line from the end effector to the point on the circle, and the angle of intersection between each line and circle.   
+
+The center of each of the circles $c_{x,n}$, $c_{y,n}$, $c_{z,n}$ can then be estimated by minimizing the difference between the locations of each circle centers $N$.  To accomplish this, the variance of each Cartesian direction was used to remove the mean and indicate the variance of the $N$ circles in each direction.  The summation of these 3 variances was then used as the objective to minimize:
+
+
+\begin{equation}
+  \begin{split}
+          & s_x^2 = \frac{1}{N} \sum_{n=1}^{N} (c_{x,n}-\overline{c_x})^2 \\ 
+          & s_y^2 = \frac{1}{N} \sum_{n=1}^{N} (c_{y,n}-\overline{c_y})^2 \\ 
+          & s_z^2 = \frac{1}{N} \sum_{n=1}^{N} (c_{z,n}-\overline{c_z})^2 \\ 
+          &obj = s_x^2 + s_y^2 +s_z^2
+  \label{eq:param_obj}
+  \end{split}
+\end{equation}
+\\
+The $fmincon$ algorithm was used to support the constraint of the following inputs:
+
+\begin{itemize}
+\item $\gamma_n$ is bounded between 0 and 3 with an initial value of 3
+\item $\phi$ is bounded between $-\pi$ and $\pi$ with an initial value of 0
+\item $\psi$ is bounded between $-\pi$ and $\pi$ with an initial value of $-\pi/2$
+\item $\beta_n$ is bounded between $-\pi$ and $\pi$ with an initial value of 0 
+\end{itemize}
+
+%-------------------------------------------
+\subsection{Method Two: Projection}
+%-------------------------------------------
+
+A vector from the points $o_4$ to $o_5$ can be used to represent the direction of the laser beam outlined in Figure \ref{fig:PUMA_frames}. Similarly, a vector from $o_5$ to a point on the circle $P$ can describe the distance between that point and the end of the laser.  However, to calculate $P$ in the global reference frame, these vectors must first be projected onto the  $zx$, $zy$, and $yx$ planes as shown in Figure \ref{fig:projection}.  The slope of each of these lines must be equivalent to the projection of the vector from $o_5$ to $P$, as described by the respective projection relationships (\ref{eq:proj_zx} - \ref{eq:proj_yx}).
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.4\textwidth]{projection.png}}
+  \centering
+  \caption{Example projection of a vector pointing to $P$, in which the slopes correspond to the vector from points $o_4$ to $o_5$. Vectors are defined relative to the world coordinate system with the origin displaced to the end of the laser pointer.} 
+  \centering
+  \label{fig:projection}
+\end{figure}
+
+
+\begin{equation}
+	\dfrac{z_5^0-z_4^0}{x_5^0-x_4^0} = \dfrac{P_z^0}{P_x^0}
+    \label{eq:proj_zx}
+\end{equation}
+
+\begin{equation}
+	\dfrac{z_5^0-z_4^0}{y_5^0-y_4^0} = \dfrac{P_z^0}{P_y^0}
+    \label{eq:proj_zy}
+\end{equation}
+
+\begin{equation}
+	\dfrac{y_5^0-y_4^0}{x_5^0-x_4^0} = \dfrac{P_y^0}{P_x^0}
+    \label{eq:proj_yx}
+\end{equation}\\
+\noindent
+The vectors defined for each point $P$ provide a range of potential values for $P$, thereby yielding an ambiguous set of solutions. However, the range of solutions can be constrained in such a way that the points $P$ must define a circle of a given radius $r$. As a general case this could result in two solutions for a given orientation of the plane of the circle, as shown in Figure \ref{fig:two_solutions}. 
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.6\textwidth]{two_solutions.png}}
+  \centering
+  \caption{Example case of two solutions resulting from the projection approach for a 6 DOF robot.} 
+  \centering
+  \label{fig:two_solutions}
+\end{figure}
+
+However, the direction of rotation of the first joint of the robot constrains the projection such that the solution of interest can be determined directly given the orientation of the plane. All rays diverge past a vertical space near the $z_0$ axis of the robot, illustrated in Figure \ref{fig:two_solutions_rev}.
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.6\textwidth]{two_solutions_rev.png}}
+  \centering
+  \caption{The specific RRR arrangement of the robot causes convergence to a single solution in the direction of the laser beam, given the radius.} 
+  \centering
+  \label{fig:two_solutions_rev}
+\end{figure}
+
+Finally, the location of the laser endpoint relative to the origin of the zeroth frame must be considered when calculating the global location of $P$.
+
+%-------------------------------------------------
+\subsubsection{Algorithm and Optimization}
+%-------------------------------------------------
+
+It was assumed that a minimum of three points were required to define a circle on a particular plane. The solution was then formulated as an optimization problem, in which the $x$, $y$, and $z$ coordinates of each of these three points $P$ were defined for a total of 9 optimization parameters.  These parameters can be solved by setting (\ref{eq:proj_zx}-\ref{eq:proj_yx}) equal to zero and then combining to form the overall objective function (\ref{eq:P_obj_func}).  
+
+
+\begin{equation}
+	\min \sqrt{\sum\limits_{i=1}^3\left(\left(\dfrac{z_5^0-z_4^0}{x_5^0-x_4^0} - \dfrac{P_z^0}{P_x^0}\right)_i^2 + \left(\dfrac{z_5^0-z_4^0}{y_5^0-y_4^0} - \dfrac{P_z^0}{P_y^0}\right)_i^2 + \left(\dfrac{y_5^0-y_4^0}{x_5^0-x_4^0} - \dfrac{P_y^0}{P_x^0}\right)_i^2\right)}
+    \label{eq:P_obj_func}
+\end{equation}
+\noindent
+The solution was subjected to a nonlinear constraint (\ref{eq:radius_constraint}), where $R$ is the given value and $R_{est}$ is calculated from the three points $P$: 
+
+
+\begin{equation}
+	\left|R-R_{est}\right| \leq .0001
+    \label{eq:radius_constraint}
+\end{equation}
+\noindent
+$R_{est}$ was calculated using the expression for the circumradius of a generalized triangle (\ref{eq:circumradius}), where $d_{12}$, $d_{13}$, and $d_{23}$ represent the lengths of the triangle sides.  These lengths can be determined using the distance formula between each pair of points $P$, indicated by their respective subscripts \cite{Weisstein}.
+
+
+\begin{equation}
+\begin{aligned}
+	R_{est} = \dfrac{d_{12}d_{13}d_{23}}{4K}\\
+	K = \sqrt{s(s-d_{12})(s-d_{13})(s-d_{23})}\\
+	s = \dfrac{d_{12}+d_{13}+d_{23}}{2}
+    \label{eq:circumradius}
+\end{aligned}
+\end{equation} 
+\noindent
+Subsequently, the estimation of the center of the circle was formulated based on Barycentric \cite{WHE} coordinates:
+
+\begin{equation}
+\begin{aligned}
+	C = \omega P_1 + \zeta P_2 + \kappa P_3\\
+    \omega = \dfrac{\|P_2-P_3\|^2(P_1-P_2)\cdot(P_1-P_3)}{2\|(P_1-P_2)\times(P_2-P_3)\|^2}\\
+    \zeta = \dfrac{\|P_1-P_3\|^2(P_2-P_1)\cdot(P_2-P_3)}{2\|(P_1-P_2)\times(P_2-P_3)\|^2}\\
+    \kappa = \dfrac{\|P_1-P_2\|^2(P_3-P_1)\cdot(P_3-P_2)}{2\|(P_1-P_2)\times(P_2-P_3)\|^2}
+    \label{eq:circle_center}
+\end{aligned}
+\end{equation}
+
+\noindent
+Given the world coordinates of each point $P$, $C$, and the endpoint of the laser, the distances from the endpoint of the laser to each point $P$ can be calculated from the distance formula. 
+\noindent
+
+
+%----------------------------------------
+\subsection{Experimental Data Collection}
+%----------------------------------------
+In the experiment, new data points were collected by carefully avoiding poorly conditioned or rank deficient solution matrices (see \ref{sec:minpoints}). This was achieved by considering the configuration of the robot's joints and ensuring that the links of the robot were sufficiently altered between data points. The joint angles of the robot were measured when the laser was located at eleven different locations around the circumference of the bicycle wheel. The home position of the robot, as well as the measured joint angles at these eleven different configurations are summarized in Table \ref{tab:exp_points}. It can be expected that selecting different sets of these points will yield similar solutions when estimating the center of the circle. 
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+\textit{\textbf{Point}} & $\mathbf{q_1}$ & $\mathbf{q_2}$ & $\mathbf{q_3}$ & \textit{\textbf{Point}} & $\mathbf{q_1}$ & $\mathbf{q_2}$ & $\mathbf{q_3}$ \\ \hline
+\textit{Home}              & 0.00       & -0.787       & -1.57      & \textit{6}              & -1.029      & -0.853      & 0.526       \\ \hline
+\textit{1}              & -0.74      & -0.04       & -0.349      & \textit{7}              & -1.02       & -0.328      & -0.076      \\ \hline
+\textit{2}              & -0.775      & 0.044       & -0.534       & \textit{8}              & -0.977      & -0.22       & -0.144      \\ \hline
+\textit{3}              & -0.844      & -1.12       & 0.832       & \textit{9}              & -0.919      & -0.796      & 0.704       \\ \hline
+\textit{4}              & -0.911      & -0.635      & 0.198       & \textit{10}             & -0.754      & -1.442      & 1.457       \\ \hline
+\textit{5}              & -0.999      & -0.636      & 0.198            & \textit{11}             & -0.86       & -1.576      & 1.45        \\ \hline
+\end{tabular}
+\caption{Measured joint angles (radians) of the PUMA robot when the laser was located at 11 different locations around the circumference the bicycle wheel. The joint angles of the home position are also included for reference.}
+\label{tab:exp_points}
+\end{center}
+\end{table}
+
+%--------------------------------------------------------------------------
+\section{Results}
+%--------------------------------------------------------------------------
+
+
+%--------------------------------------------------------------------------
+\subsection{Results for Method One: Parameterization}
+%--------------------------------------------------------------------------
+Using the sample data, the parameterization method produces a sufficiently accurate result in comparison to the provided circle center, as shown in Table \ref{tab:richter_data_point_results_param}. Though the method relies on a minimum of 5 measurements, accuracy was still achieved using the 4 sample data points. 
+When comparing the given value to the estimated value, errors of 2.5, -0.5, and -6.3 cm in the $x$,  $y$, and $z$ directions were obtained.
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Data Points}  & \textbf{Provided Circle Center} & \textbf{Results} \\ \hline
+$c_x (m)$ & 2.1192 & 2.085  \\ \hline
+$c_y (m)$ & -0.9218 &-0.917  \\ \hline
+$c_z (m)$ & 0.8367  & 0.900   \\ \hline
+$\phi (rad)$ & - &  0.253 \\ \hline
+$\psi (rad)$ & - & -2.393 \\ \hline
+$obj (m^2)$ & - & 6.170e-7  \\ \hline
+\end{tabular}
+\caption{Parameterization results for the location and orientation of wheel with the provided sample measurements}
+\label{tab:richter_data_point_results_param}
+\end{center}
+\end{table}
+
+Subsequently, the algorithm was then tested on the 11 experimentally measured data points.  Table \ref{tab:test_data_point_results_param} summarizes the result when the number of data points is varied. Several sets of data points were considered as to observe the effect of the minimum number of points on the results.  In all test cases, computation times were less than 1 second. Though the algorithm converges  when using less than 5 data points, the actual solution cannot be obtained as the optimization is not fully constrained. 
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Data Points}  & \textbf{1,3,5}  & \textbf{1,3,5,7} & \textbf{1,3,5,7,9} & \textbf{1 - 11}  \\ \hline
+$c_x (m)$ &0.640 &  0.927 & 1.031 & 0.879 \\ \hline
+$c_y (m)$ &-0.996 &   -1.316 & -1.435 & -1.290 \\ \hline
+$c_z (m)$  &1.044  & 1.222 & 1.293 & 1.271 \\ \hline
+$\phi (rad)$&  -0.664 & -0.183 & -0.108 & -0.467\\ \hline
+$\psi (rad)$& -1.806 & -2.071 & -2.209 & -2.170\\ \hline
+$obj (m^2)$ & 5.919e-8 & 8.689e-8 & 1.185e-6 & 1.292e-3 \\ \hline
+\end{tabular}
+\caption{Parameterization results for the location and orientation of wheel using experimental data and a variation of data points}
+\label{tab:test_data_point_results_param}
+\end{center}
+\end{table}
+
+An example of the solution method using all 11 points is shown in Figure \ref{fig:parameterOptResults}, in which the lines represent the vector between the end effector of the laser onto the circumference of the bicycle wheel, represented as circles. As observed, the center of each of these circles converges to a single solution.   
+
+\begin{figure}[!ht]
+  {\includegraphics[width=0.95\textwidth]{parameterOptResults.png}}
+  \centering
+  \caption{Parameterization results using experimental data, in which the lines represent the vectors between the endpoint of the laser and the bicycle wheel (circles) for each data point} 
+  \centering
+  \label{fig:parameterOptResults}
+\end{figure}
+
+%--------------------------------------------------------------------------
+\subsection{Results for Method Two:  Projection}
+%--------------------------------------------------------------------------
+
+The projection algorithm was initially tested using the first three joint angles provided in the sample data.  The estimated global coordinates of the points $P$ and the center of the circle $C$ are provided in Table \ref{tab:test_data_point_results}, while the distances from the endpoint of the laser and the bicycle wheel are shown in Table \ref{tab:test_data_distance_results}. For the given set of results, the value for the cost function (\ref{eq:P_obj_func}) was $2.1\times10^{-6}$.  When comparing the given value to the estimated value, errors of 4.9, -0.9, and -18.3 cm in the $x$,  $y$, and $z$ directions were obtained. A comparison of the estimated and provided circle centers is shown in Figure \ref{fig:results_proj1}.
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Point}  & $\boldsymbol{x (m)}$  & $\boldsymbol{y (m)}$ & $\boldsymbol{z (m)}$  \\ \hline
+$P_1$  & 2.3364      & -1.0360     & 1.1953      \\ \hline
+$P_2$  & 2.0755      & -0.5800     & 0.9435      \\ \hline
+$P_3$  & 1.8314      & -1.1441     & 0.9413      \\ \hline
+$C_{est}$    & 2.0707      & -0.9131     & 1.0193      \\ \hline
+$C_{given}$    & 2.1192      & -0.9218     & 0.8367      \\ \hline
+\end{tabular}
+\caption{Coordinate results for the estimated points ($P$) and circle center ($C_{est}$) and the provided circle center $C_{given}$ relative to global frame using the first three joint angles of the sample data.}
+\label{tab:test_data_point_results}
+\end{center}
+\end{table}
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Distance from Endpoint (m)}}  \\ \hline
+$d_{P_1}$               & 1.9547  \\ \hline
+$d_{P_2}$               & 1.6098  \\ \hline
+$d_{P_3}$               & 1.5710  \\ \hline
+\end{tabular}
+\caption{Distances from the endpoint of the laser to the point on the bicycle wheel using the first three joint angles provided in the sample data}
+\label{tab:test_data_distance_results}
+\end{center}
+\end{table}
+
+\begin{figure}[!ht]
+  {\includegraphics[width = 0.9\textwidth]{24_Mar_2015_09_23_27_plot.png}}
+  \centering
+  \caption{Plot illustrating the projection method results of calculating points $P$ (blue) and $C$ (green) from the test data, along with a sketch of the related circle. The value given for $C$ from the test data is shown (red) for comparison.}
+  \centering
+  \label{fig:results_proj1}
+\end{figure}
+
+The algorithm was then tested using the data points obtained during the experiment. To best represent the data set, points 1, 6, and 9 (see Table \ref{tab:exp_points} were selected as they were evenly spread along the circumference of the bicycle wheel. The estimated circle center and distances to the bicycle wheel are shown in Table \ref{tab:collected_data_point_results} and Table \ref{tab:collected_data_distance_results}, respectively.  For the given results the final value of the cost function (\ref{eq:P_obj_func}) was $8.4\times10^{-6}$ A graphical representation of the estimated points and circle center are shown in Figure \ref{fig:results_proj2}.
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Point}  & $\boldsymbol{x (m)}$  & $\boldsymbol{y (m)}$ & $\boldsymbol{z (m)}$  \\ \hline
+$P_1$  & 1.7602      & -1.7399     & 1.5201      \\ \hline
+$P_2$  & 1.0502      & -1.9350     & 1.5964      \\ \hline
+$P_3$  & 1.3600      & -1.9439     & 1.1654      \\ \hline
+$C_{est}$    & 1.4038      & -1.8465     & 1.5217      \\ \hline
+\end{tabular}
+\caption{Coordinate results for the estimated points ($P$) and circle center ($C_{est}$) relative to global frame using the points 1,6, and 9 of the experimental data set.}
+\label{tab:collected_data_point_results}
+\end{center}
+\end{table}
+
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Distance from Endpoint (m)}}  \\ \hline
+$d_{P_1}$               & 1.9364  \\ \hline
+$d_{P_2}$               & 1.7349  \\ \hline
+$d_{P_3}$               & 1.8071  \\ \hline
+\end{tabular}
+\caption{Distances from the endpoint of the laser to the point on the bicycle wheel using points 1,6, and 9 of the experimental data set}
+\label{tab:collected_data_distance_results}
+\end{center}
+\end{table}
+
+\begin{figure}[!ht]
+  {\includegraphics[width = 0.9\textwidth]{23_Mar_2015_21_26_16_plot.png}}
+  \centering
+  \caption{Plot of the projection method results for points $P$ (blue) and $C$ (green) from the collected data, along with a sketch of the related circle.}
+  \centering
+  \label{fig:results_proj2}
+\end{figure}
+
+%--------------------------------------------------------------------------
+\subsection{Error Estimation}
+%--------------------------------------------------------------------------
+
+As the accuracy and uncertainty of the provided measurements is unknown, quantifying the error can be challenging.  However, the sensitivity of the location of the circle ($\sqrt{c_x^2+c_y^2+c_z^2}$) to each physical measurement can provide insight into which values are the most critical for obtaining the most accurate results. To accomplish this, the symbolic gradient of the system of equations can be calculated by selecting the first sample measurement as an operating point. 
+
+An assumed error of 0.001 $m$ for linear variables and 0.001 $rad$ for angular variables was used to provide an estimation of the total error contributed by each of these variables.  A 95\% confidence interval (5.1e-04) was then placed on each variable and multiplied by the corresponding sensitivities to arrive at an expanded uncertainty for each input.  The root-sum-square (RSS) of these expanded uncertainties and a 1.96 $k$-coverage factor (95\% uncertainty) was then used to estimate an overall uncertainty of +/-0.0024 m, as shown through previous study \cite{GUM}. A reasonable error estimation indicates that the majority of the solution error is due to the measurement process.  Table \ref{tab:errorSensitivity} summarizes the assumed error, sensitivity, and expanded uncertainty for each parameter. 
+ 
+\begin{table}[ht!]
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Linear\\ Parameter (m)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Assumed\\ Error (m)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Sensitivity\\  (m/m)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Expanded\\ Uncertainty (m)\end{tabular}}} \\ \hline			
+     $a_5 $ &	0.001  &	0.9672  & 4.93e-04  \\ \hline
+     $a_4 $ &	0.001  &	0.9672   & 4.93e-04 \\ \hline
+     $a_3 $ &	0.001  &	0.9672  & 4.93e-04 \\ \hline
+     $a_2 $ &	0.001  &	0.9644  & 4.92e-04 \\ \hline
+     $a_1 $ &	0.001  &	0.9293  & 4.74e-04 \\ \hline
+     $r $ &	    0.001  &	0.3975  & 2.03e-04 \\ \hline
+     $d_1 $ &	0.001  &	0.3676  & 1.88e-04 \\ \hline
+ 	 $\alpha_2 $ &	0.001  & 0.0660  & 3.37e-05 \\ \hline
+     $d_5 $ &	0.001  &	0.0329  & 1.68e-05 \\ \hline
+     $d_4 $ &	0.001  &	0.0329  & 1.68e-05 \\ \hline
+     $d_3 $ &	0.001  &	0.0329  & 1.68e-05 \\ \hline
+     $d_2$ &	0.001  &	0.0329  & 1.68e-05 \\ \hline
+ 	 $\alpha_1$ &	0.001  &	0.0206  & 1.05e-05 \\ \hline
+ 	 $\alpha_3$ &	0.001  &	0.0131	  & 6.69e-06 \\ \hline
+ 	 $\alpha_4$ &	0.001  &	0.0000  & 0.00e+00 \\ \hline
+\multicolumn{1}{|c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Angular\\ Parameter (rad)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Assumed\\ Error (rad)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Sensitivity\\  (m/rad)\end{tabular}}} & \multicolumn{1}{c|}{\textbf{\begin{tabular}[c]{@{}c@{}}Expanded\\ Uncertainty (m)\end{tabular}}} \\ \hline
+     $q_1$ &	0.001  &	0.0238  & 1.22e-05 \\ \hline
+     $q_2$ &	0.001  &	0.3171  & 1.62e-04 \\ \hline
+ 	 $q_3$ &	0.001  &	0.4302  & 2.20e-04 \\ \hline
+ 	 $q_4$ &	0.001  &	0.4302  & 2.20e-04 \\ \hline
+ 	 $q_5$ &	0.001  &	0.4302  & 2.20e-04 \\ \hline
+ \end{tabular}
+\caption{Assumed error, sensitivity, and expanded uncertainty for the linear and angular variables using a 95\% confidence interval value of 5.1e-4, which must be first multiplied by the assumed errors to obtain the expanded uncertainty}
+\label{tab:errorSensitivity}
+\end{center}
+\end{table}
+
+%--------------------------------------------------------------------------
+\section{Discussion}
+%-------------------------------------------------------------------------- 
+
+To test the capability of using a laser-fitted PUMA robotic manipulator to measure world coordinates, a very accurate bicycle wheel was randomly oriented in space. The joint angles of the PUMA robot were measured as the laser beam was oriented at various locations along the circumference of the bicycle wheel. Using only this information and the radius of the bicycle wheel, two methods were developed that estimated the center of the bicycle wheel in global coordinates. The first technique involves parameterizing the bicycle wheel as a circle and the laser as a line for each data point, and using optimization to force convergence among the centers of these circles. A second method projects the vectors between the end of the laser and the measured point into global coordinates, in which an optimization can then calculate the coordinates of the vectors' endpoints.  To obtain accurate results, each method was developed using sample data and a known circle center before testing on data points obtained through experimentation.  
+
+Though the parameterization method is reliant on using a minimum of 5 points, low errors of 2.5, -0.5, and -6.3 cm in the $x$,  $y$, and $z$ coordinates of the center were obtained when using the 4 points of the sample data.  Given an additional sample data point, it can be assumed that the $z$-coordinate would more closely converge to the provided solution.  Based on the low errors of this result, it can be concluded that the center of the circle that was estimated using 5 experimental data points ($\begin{bmatrix} 1.031 & -1.435  & 1.293 \end{bmatrix}^T$) is sufficiently accurate. Additionally, minimal computation times of less than 1 second per optimization were achieved, regardless of the number of data points used in the algorithm. However, the requirement to obtain several data points is the main limitation of the method as measurement errors associated with each additional data point will produce a compounded error in the final result. A potential improvement to the method involves creating initial values of $\phi$ and $\psi$ angles that define the orientation of the circle.  These initial values can be set such that the circle is normal to the line of the first data point.  
+
+Alternatively, when using the sample data, the projection method produced results that were within the same general solution, though a large error of -18.3 cm in the $z$-coordinate was obtained. Using the sample data, a center coordinate estimation of ($\begin{bmatrix} 1.4 & -1.8  & 1.5 \end{bmatrix}^T$) was obtained. These errors between these results and those of the parameterization method are approximately within the +/- 35 cm range. Lengthy computation times of the projection method of approximately 5 minutes and non-deterministic results among optimizations suggest convergence issues. It can be concluded that selecting points that fall within the given radius along the laser vectors is not a sufficient constraint. As the plane of the circle remains unconstrained, several different solutions can be obtained. Therefore, in the context of the parameterization method, the projection method can be categorized as an alternate approach to orienting the parameterized lines.
+
+To address the unconstrained nature of this method, an optimization can be formulated in which both the circle and line are represented by sets of three parametric equations per point. The normal vector of the circle's plane is defined by the spherical angle coordinates. Five points are required for the number of equations to equal the number of unknowns, mirroring the parameterization method. This yields a total of $30$ equations and $30$ unknowns. Optimization can be used to determine the set of variables such that each equation is satisfied. The spherical coordinate angles may be constrained by setting lower and upper bounds on their values, thereby constraining the plane of the circle.  The projection method may then be used to define the orientation of the lines, with the plane fully constrained. 
+
+Both the parameterization and projection methods will not converge if the rank-deficient matrices are obtained.  Though this may be easily avoided by sufficiently varying the joint angles of the robot for each measurement, failure to do so may result in parallel lines or equal distances between the wheel and the endpoint of the laser. In this case, convergence is not possible as each successive data point does not provide enough information to properly condition these matrices.  
+
+In additional to optimization errors, experimental sources of error include the measurement of the lengths of each link of the robot, parallax error when measuring joint angles, and the resolution of the encoders. However, the results of the error estimation suggestion a total error of +/-0.0024 m, thereby suggesting that the obtained results are only marginally influenced by incorrect measurements. To further reduce these sources of error, the sensitivity values of each of these parameters can be considered.  For instance, the largest sensitivity was found in the third joint angle of the robot $q_3$. Therefore, improving the resolution of this encoder would have the most significant improvement to measurement errors. 
+
+%----------------------------------------------------------------------------
+\section*{Supplemental} 
+%----------------------------------------------------------------------------
+
+All software has been made available for download on the GitHub Repository:
+\url{https://github.com/spinningplates/MCE647_Midterm.git}
+
+\pagebreak
+%---------------------------------------------------------------------------
+\begin{thebibliography}{9}
+%---------------------------------------------------------------------------
+	
+    \bibitem{Corke}
+    Corke, PI., Armstrong-Helouvry, B.,
+    \textit{A search for consensus among model parameters reported for the PUMA 560 Robot},
+    Proc. IEEE 1994 Intl, Conf. Robotics and Automation, San Diego, California.
+    
+    \bibitem{Weisstein}
+  	Weisstein, Eric W.,
+	\textit{Circumradius.}
+	From MathWorld--A Wolfram Web Resource.
+	\url{http://mathworld.wolfram.com/Circumradius.html}
+
+	\bibitem{SHV}
+    Spong, Mark W., Hutchinson, Seth, Vidyasagar, M.,
+    \textit{Robot Modeling and Control.} 
+    Hoboken, NJ: John Wiley and Sons, 2006. Print.
+    
+    
+    \bibitem{Paul}
+    \textit{Paul's Online Notes: Calculus III}
+    \url{http://tutorial.math.lamar.edu/\\Classes/CalcIII/EqnsOfLines.aspx}
+    
+    \bibitem{Becker}
+    Becker, A.,
+	\textit{Parametric Equation of a Circle in 3D},
+    From Wolfram Demonstrations Project, \url{http://demonstrations.wolfram.com   /ParametricEquationOfACircleIn3D/}
+
+	\bibitem{Weisstein2}
+	Weisstein, Eric W. ,
+    \textit{Spherical Coordinates},
+    From MathWorld--A Wolfram Web Resource,
+    \url{http://mathworld.wolfram.com/\\SphericalCoordinates.html} 
+       
+    \bibitem{GUM}
+	Joint Committee for Guides in Metrology,
+    \textit{Guide to the Expression of Uncertainty in Measurement (GUM)},
+    JCGM 100-:2008, 1st Edition 2008 
+    
+    \bibitem{WHE}
+    Circumscribed Circle,
+    \textit{World Heritage Encyclopedia},
+    \url{http://self.gutenberg.org/articles/Circumscribed\_circle}
+    % This is still Wikipedia in the end! I can't get a way from it! Looking again...
+    
+\end{thebibliography}
+\pagebreak
+%---------------------------------------------------------
+\section*{Appendix: Final Transformation Matrix $A_5^0$} 
+%---------------------------------------------------------
+
+\begin{figure}[!ht]
+  {\includegraphics[width = 0.9\textwidth]{A50_screenshot.png}}
+  \centering
+  \caption{Matrix entries for $A_5^0$}
+  \centering
+  \label{fig:A50_matrix}
+\end{figure}
+
+\end{document}
