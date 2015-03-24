@@ -18,7 +18,7 @@ may be downloaded and unzipped.  Intuitively, all code associated
 with the parameterization method and projection method have been 
 separated in their respective folders.  
 
-- The parameterization method can be run through the main code `runOpt3.m`
+- The parameterization method can be run through the main code `runParamOpt.m`
 - The projection method can be run through the main code `Midterm_takehome_rev4.m`
 
 Software Dependencies
