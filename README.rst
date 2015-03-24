@@ -1,23 +1,25 @@
 Introduction
 =============
-This is all associated code for the take-home midterm for
 
-MCE647 Robot Dynamics and Control
+This repository contains all software used for  
+    MCE 647 Robot Dynamics and Control 
+    Cleveland State University
+    Dr. Hanz Richter
+    Spring 2015
 
-Cleveland State University
-
-Dr. Hanz Richter
-
-Spring 2015
+The PDF of the associated report and the LaTeX source code 
+is available in the repository for reference.  
     
 Instructions
 =============
 
--The parameterization method can be run through the main code runOpt3.m
--The projection method can be run through the main code Midterm_takehome_rev4.m
+To obtain the results presented in the paper, the source code 
+may be downloaded and unzipped.  Intuitively, all code associated
+with the parameterization method and projection method have been 
+separated in their respective folders.  
 
-Description 
-============    
+- The parameterization method can be run through the main code `runOpt3.m`
+- The projection method can be run through the main code `Midterm_takehome_rev4.m`
 
 Software Dependencies
 ======================
