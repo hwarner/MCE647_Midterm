@@ -7,7 +7,7 @@ Introduction
 | Dr. Hanz Richter
 | Spring 2015
 
-The PDF of the associated report and the LaTeX source code 
+| The PDF of the associated report and the LaTeX source code 
 is available in the repository for reference.  
     
 Instructions
