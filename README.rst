@@ -8,7 +8,7 @@ The original problem statement can be referenced in the repository **mce647mterm
 A final version of the report as well as the source code has been made available:
 
 - **MCE647_Midterm.tex**: LaTeX source code  
-- %%MCE647_report.pdf**: Final PDF build
+- **MCE647_report.pdf**: Final PDF build
 
 Instructions
 =============
