@@ -71,7 +71,7 @@ Helper functions:
 
 - *HRx/z.m*:  Functions used to generate homogeneous rotation matrices about x and z
 - *HTx/z.m*:  Functions used to generate homogeneous translation matrices about x and z
-- *rot_jac_mat*:  Function for the derivation of general DH convention matrices and the linear and angular velocity Jacobian
+- *rot_jac_mat.m*:  Function for the derivation of general DH convention matrices and the linear and angular velocity Jacobian
 - *plotCircle3D.m*:  Function for plotting a circle in 3D from MATLAB File Exchange
 - *license.txt*: Usage license for *plotCircle3D.m*
 
