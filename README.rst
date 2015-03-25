@@ -16,7 +16,7 @@ with the parameterization method and projection method have been
 separated in their respective folders.  
 
 - The parameterization method can be run through the main code **runParamOpt.m**
-- The projection method can be run through the main code **Midterm_takehome_rev4.m**
+- The projection method can be run through the main code **Projection_method_main.m**
 
 Software Dependencies
 ======================
