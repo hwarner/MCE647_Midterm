@@ -65,7 +65,7 @@ Projection Method
 
 Stand alone scripts:
 
-- **Projection_method_main.m**:  Main File for running optimization (Start HEre for Projection Method)
+- **Projection_method_main.m**:  Main File for running optimization (Start Here for Projection Method)
 
 Helper functions:
 
