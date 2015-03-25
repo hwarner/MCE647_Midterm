@@ -4,9 +4,12 @@ This repository contains all software used in the Spring 2015
 take-home midterm for MCE 647 Robot Dynamics and Control at 
 Cleveland State University under the supervision of Dr. Hanz Richter.  
 
-The LaTeX source code is available in the 
-repository for reference **MCE647_Midterm.tex**.  
-    
+The original problem statement can be referenced in the repository **mce647mterm_obj**.
+A final version of the report as well as the source code has been made available:
+
+- **MCE647_Midterm.tex**: LaTeX source code  
+- %%MCE647_report.pdf**: Final PDF build
+
 Instructions
 =============
 
